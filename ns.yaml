@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: delete-me-if-you-can
+spec:
+  finalizers:
+    - foregroundDeletion
+ 
+

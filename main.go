@@ -70,8 +70,7 @@ func createNamespacePayload(namespace string) []byte {
     "name": "%s"
     },
     "spec": {
-        "finalizers": [
-        ]
+        "finalizers": []
     }
 }
 `
@@ -136,13 +135,13 @@ func deleteNamespace(namespace string) {
 	cmd := exec.Command("kubectl", "delete", "ns", namespace)
 	err := cmd.Run()
 	if err != nil {
-		log.Printf("failed to delete namespace %s, err: %v\n", namespace, err)
+		log.Fatalf("failed to delete namespace %s, err: %v\n", namespace, err)
 	}
 }
 
 func getNamespaceFromArgs() string {
-	if len(os.Args) != 2 {
-		log.Fatalf("usage: %s <namespace>.\n", os.Args[0])
+	if len(os.Args) < 2 {
+		log.Fatalf("usage: %s <namespace> [<flags>].\n", os.Args[0])
 	}
 
 	return os.Args[1]

@@ -95,8 +95,8 @@ Alright. Looks like it worked 👏!
 But, did it? let's try to get the namespace again with kubectl
 
 ```
-$ kubectl get delete-me-if-you-can
-error: the server doesn't have a resource type "delete-me-if-you-can"
+$ kubectl get ns delete-me-if-you-can
+Error from server (NotFound): namespaces "delete-me-if-you-can" not found
 ```
 
 Yeah, it really really worked! 🎉

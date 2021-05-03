@@ -17,7 +17,7 @@ import (
 // It takes as input the namespace as an argument and a few optional arguments.
 //
 // The following arguments are mandatory:
-// * the namespace to delete
+// * --namespace the namespace to delete
 //
 // The following flags are optional:
 // * --kube-context (will use current context if not specified)
@@ -27,7 +27,7 @@ import (
 // Example command:
 //
 /*
-k8s-namespace-deleter obsolete-namespace              /
+k8s-namespace-deleter --namespace obsolete-namespace  /
                       --kube-context some-context     /
                       --kube-config  ~/.kube/config   /
                       --port         8888
@@ -78,8 +78,8 @@ func createNamespacePayload(namespace string) []byte {
 }
 
 // getNamespace fetches the namespace resource as raw JSON
-func doesNamespaceExist(url string) bool {
-	cmd := exec.Command("kubectl", "get", "--raw", url)
+func doesNamespaceExist(kubeContext string, url string) bool {
+	cmd := exec.Command("kubectl", "get", "--context", kubeContext, "--raw", url)
 	err := cmd.Run()
 	if err != nil {
 		return false
@@ -93,7 +93,7 @@ func doesNamespaceExist(url string) bool {
 // It replace the namespace (that might have finalizers) with
 // a simple namespace that just contains the name of the original
 // namespace with no spec or status.
-func updateNamespace(url string, namespace string) {
+func updateNamespace(kubeContext string, url string, namespace string) {
 	payload := createNamespacePayload(namespace)
 
 	cli := http.DefaultClient
@@ -127,39 +127,40 @@ func updateNamespace(url string, namespace string) {
 	}
 
 	if r.StatusCode >= 400 {
+		// Sometimes the namespace is already deleted and status code is 404. Just exit in this case.
+		if !doesNamespaceExist(kubeContext, namespace) {
+			log.Printf("namespace %s was deleted successfully.\n", namespace)
+			os.Exit(0)
+		}
 		log.Fatalf("failed to update namespace: %v\n", r.Status)
 	}
 }
 
-func deleteNamespace(namespace string) {
-	cmd := exec.Command("kubectl", "delete", "ns", namespace)
+func deleteNamespace(kubeContext string, namespace string) {
+	cmd := exec.Command("kubectl", "delete", "--context", kubeContext, "ns", namespace)
 	err := cmd.Run()
 	if err != nil {
 		log.Fatalf("failed to delete namespace %s, err: %v\n", namespace, err)
 	}
 }
 
-func getNamespaceFromArgs() string {
-	if len(os.Args) < 2 {
-		log.Fatalf("usage: %s <namespace> [<flags>].\n", os.Args[0])
-	}
-
-	return os.Args[1]
-}
-
 func main() {
 	var (
+		namespace      string
 		kubeConfigPath string
 		kubeContext    string
 		port           int
 	)
+	flag.StringVar(&namespace, "namespace", "", "the obsolete namespace to delete (mandatory)")
 	flag.StringVar(&kubeConfigPath, "kube-config", "", "path to the kubernetes config file, if unset, will use $HOME/.kube/config")
 	flag.StringVar(&kubeContext, "kube-context", "", "the context to use in the kube config file")
 	flag.IntVar(&port, "port", 8888, "the port to start the kubectl proxy with")
 	flag.Parse()
 
 	// Verify arguments and get namespace
-	namespace := getNamespaceFromArgs()
+	if namespace == "" {
+		log.Fatalf("usage: %s --namespace <namespace> [<flags>].\n", os.Args[0])
+	}
 
 	// Set KUBECONFIG to the provided kube config file (if no file is provided use default)
 	if kubeConfigPath != "" {
@@ -179,17 +180,16 @@ func main() {
 	url := composeURL(port, namespace)
 
 	// Verify the namespace exists (will fail fatally if it doesn't exist)
-	ok := doesNamespaceExist(url)
+	ok := doesNamespaceExist(kubeContext, url)
 	if !ok {
 		log.Fatalf("namespace %s doesn't exist\n", namespace)
 	}
 
-	updateNamespace(url, namespace)
-
-	deleteNamespace(namespace)
+	deleteNamespace(kubeContext, namespace)
+	updateNamespace(kubeContext, url, namespace)
 
 	// Verify the namespace doesn't exist anymore
-	ok = doesNamespaceExist(url)
+	ok = doesNamespaceExist(kubeContext, url)
 	if !ok {
 		log.Printf("namespace %s was deleted successfully.\n", namespace)
 	} else {

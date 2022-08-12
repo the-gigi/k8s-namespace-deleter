@@ -10,9 +10,8 @@ See [Kubernetes issue 77086](https://github.com/kubernetes/kubernetes/issues/770
 
 It takes as input the namespace to delete and a few optional arguments.
 
-
 The following arguments are mandatory:
-* the namespace to delete
+* --namespace <namespace> the namespace to delete
 
 The following flags are optional:
 * --kube-context (will use current context if not specified)
@@ -22,7 +21,7 @@ The following flags are optional:
 Example command:
 
 ```
-k8s-namespace-deleter obsolete-namespace                /
+k8s-namespace-deleter --namespace obsolete-namespace    /
                       --kube-context some-context       /
                       --kube-config  ~/.kube/config     /
                       --port         8888
@@ -39,7 +38,7 @@ go build -o /usr/local/bin/kubectl-ns-delete
 Now you can force delete any namespace with the following kubectl command:
 
 ```
-kubectl ns delete <namespace>
+kubectl ns delete --namespace <namespace>
 ```
 
 # Quick test

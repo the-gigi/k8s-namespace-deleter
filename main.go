@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -137,9 +138,12 @@ func updateNamespace(kubeContext string, url string, namespace string) {
 }
 
 func deleteNamespace(kubeContext string, namespace string) {
-	cmd := exec.Command("kubectl", "delete", "--context", kubeContext, "ns", namespace)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "kubectl", "delete", "--context", kubeContext, "ns", namespace)
 	err := cmd.Run()
-	if err != nil {
+	if err != nil && ctx.Err() != context.DeadlineExceeded {
 		log.Fatalf("failed to delete namespace %s, err: %v\n", namespace, err)
 	}
 }

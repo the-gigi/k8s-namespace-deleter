@@ -1,6 +1,6 @@
 # Overview
 
-The namespace_deleter.py program deletes Kubernetes namespaces.
+k8s-namespace-deleter is a little Go program to reliably delete Kubernetes namespaces.
 
 This is a surprisingly non-trivial task. You can `kubectl delete ns` and if you're lucky the namespace will deleted. But, the namespace might also hang forever in `Terminating` state. There is no easy way to force delete a namespace.
 
